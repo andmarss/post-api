@@ -8,7 +8,8 @@ Route::group(['prefix' => 'api'], function () {
         Route::post('', 'NewsController@index')
             ->name('news.list');
 
-        Route::post('{id}', 'NewsController@show')->where(['id' => '\d+']);
+        Route::post('{id}', 'NewsController@show')
+            ->where(['id' => '\d+']);
     });
 
     Route::group(['prefix' => 'session'], function () {
@@ -16,8 +17,7 @@ Route::group(['prefix' => 'api'], function () {
             ->name('session.list');
 
         Route::post('{id}', 'SessionController@show')
-            ->where(['id' => '\d+
-            ']);
+            ->where(['id' => '\d+']);
     });
 
     Route::any('', function (){
