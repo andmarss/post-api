@@ -2,6 +2,8 @@
 
 require 'vendor/autoload.php';
 
+require_once 'bootstrap.php';
+
 use App\Routing\Route;
 use App\System\Request;
 
