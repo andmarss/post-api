@@ -636,7 +636,11 @@ class QueryBuilder
                 $joins = '';
             }
 
-            $where = implode(" ", array_values($this->sql['where']));
+            if (count($this->sql['where']) > 0) {
+                $where = sprintf('WHERE %s', implode(" ", array_values($this->sql['where'])));
+            } else {
+                $where = '';
+            }
 
             if ($this->sql['order_by']) {
                 $order_by = $this->sql['order_by'];
@@ -661,7 +665,7 @@ class QueryBuilder
             }
 
             $sql = sprintf(
-                "%s FROM %s %s WHERE %s %s %s", $select, $table, $joins, $where, $order, $limit
+                "%s FROM %s %s %s %s %s", $select, $table, $joins, $where, $order, $limit
             );
         } elseif ($this->insert) {
             /**
@@ -705,7 +709,11 @@ class QueryBuilder
                 $joins = '';
             }
 
-            $where = implode(" ", array_values($this->sql['where']));
+            if (count($this->sql['where']) > 0) {
+                $where = sprintf('WHERE %s', implode(" ", array_values($this->sql['where'])));
+            } else {
+                $where = '';
+            }
 
             $sql = sprintf('%s %s %s', $delete, $joins, $where);
         }
