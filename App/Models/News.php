@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Contracts\FromFillableInterface;
 use App\System\Database\Relations\BelongsTo;
 
 /**
@@ -15,7 +16,7 @@ use App\System\Database\Relations\BelongsTo;
  * @property int $LikesCounter
  * @property Participant $participant
  */
-class News extends Model
+class News extends Model implements FromFillableInterface
 {
     protected $table = 'news';
 
@@ -34,5 +35,13 @@ class News extends Model
     protected function participant(): BelongsTo
     {
         return $this->belongsTo(Participant::class, 'ID', 'ParticipantId');
+    }
+
+    /**
+     * @return array
+     */
+    public function getFromFillable(): array
+    {
+        return $this->data;
     }
 }
