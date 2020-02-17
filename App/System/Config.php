@@ -22,10 +22,12 @@ class Config
 
         if (count($config) === 0) return false;
 
-        $keys = explode($key, '/');
+        $keys = explode('/', $key);
 
         foreach ($keys as $key) {
             if (!isset($config[$key])) return false;
+
+            $config = $config[$key];
 
             continue;
         }
@@ -48,10 +50,10 @@ class Config
 
         $config = static::$config;
 
-        $keys = explode($key, '/');
+        $keys = explode('/', $key);
 
         foreach ($keys as $key) {
-            $config = $config && isset($config[$key]) ? $config[$key] : false;
+            $config = isset($config[$key]) && $config ? $config[$key] : false;
         }
 
         return $config;
