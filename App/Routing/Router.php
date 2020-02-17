@@ -4,7 +4,6 @@ namespace App\Routing;
 
 use App\Http\Controller;
 use App\System\Request;
-use App\System\Singleton;
 use App\Traits\SingletonTrait;
 
 class Router
@@ -112,7 +111,6 @@ class Router
      */
     protected function direct(string $uri, string $method): Router
     {
-        die(var_dump(static::getRoutes()));
         if ($uri === '') {
             $uri = '/';
         }
