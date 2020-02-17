@@ -27,8 +27,8 @@ class Join
             '%s JOIN %s ON %s %s %s',
             $this->type,
             $this->table,
-            $this->escape($first),
-            $this->escape($operator),
+            $first,
+            $operator,
             $this->escape($second)
         );
 
@@ -43,8 +43,8 @@ class Join
 
         $this->joins[] = sprintf(
             'OR %s %s %s',
-            $this->escape($first),
-            $this->escape($operator),
+            $first,
+            $operator,
             $this->escape($second)
         );
 
