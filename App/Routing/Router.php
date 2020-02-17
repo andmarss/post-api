@@ -282,7 +282,7 @@ class Router
      */
     protected function callAction(string $controller, string $action, array $params = []): Router
     {
-        $controller = "App\\Controllers\\{$controller}";
+        $controller = "App\\Http\\{$controller}";
         $controller = new $controller;
 
         if(!method_exists($controller, $action)) {
