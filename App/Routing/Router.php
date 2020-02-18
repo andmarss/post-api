@@ -407,11 +407,7 @@ class Router
             if(preg_match_all("/$pattern/", $uri, $m)) {
                 return array_slice(array_map(function(array $match){
                     if(isset($match[0])) {
-                        if(strpos($match[0], '/') !== 0) {
-                            return  '/' . $match[0];
-                        } else {
-                            return $match[0];
-                        }
+                        return $match[0];
                     } else {
                         return [];
                     }
