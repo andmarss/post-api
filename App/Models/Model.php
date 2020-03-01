@@ -5,11 +5,13 @@ namespace App\Models;
 use App\System\Collection;
 use App\System\Database\DB;
 use App\System\Database\QueryBuilder;
+use App\Traits\MigrationTraits\UnderscoreAndCamelCaseTrait;
 use App\Traits\Relations;
 
-abstract class Model
+abstract class Model implements \JsonSerializable
 {
     use Relations;
+    use UnderscoreAndCamelCaseTrait;
 
     /**
      * @var string $table
@@ -18,7 +20,7 @@ abstract class Model
     /**
      * @var string $primaryKey
      */
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'ID';
     /**
      * @var bool $exists
      */
@@ -31,6 +33,8 @@ abstract class Model
      * @var array $fillable
      */
     protected $fillable = [];
+
+    protected $dates = [];
 
     protected $data = [];
     /**
@@ -91,6 +95,21 @@ abstract class Model
 
     /**
      * @param array $attributes
+     * @return Collection|bool|int
+     * @throws \Exception
+     */
+    protected function create(array $attributes)
+    {
+        return DB::getInstance()
+            ->setQuery(new QueryBuilder())
+            ->getQuery()
+            ->setModel($this)
+            ->create($attributes)
+            ->execute();
+    }
+
+    /**
+     * @param array $attributes
      * @return bool
      * @throws \Exception
      */
@@ -100,7 +119,7 @@ abstract class Model
             return DB::getInstance()
                 ->getQuery()
                 ->setModel($this)
-                ->update($attributes)
+                ->update($this->fromFillable($attributes))
                 ->save();
         } elseif (count($this->data)) {
             $attributes = [];
@@ -149,13 +168,18 @@ abstract class Model
     /**
      * @param array $attributes
      * @return $this
+     * @throws \Exception
      */
     public function fill(array $attributes)
     {
         if (count($attributes) === 0) return $this;
 
         foreach ($this->fromFillable($attributes) as $key => $value) {
-            $this->data[$key] = $value;
+            if (in_array($key, $this->dates)) {
+                $this->data[$key] = (new \DateTime($value))->format('Y-m-d H:i:s');
+            } else {
+                $this->data[$key] = $value;
+            }
         }
 
         return $this;
@@ -280,8 +304,14 @@ abstract class Model
             ->getQuery()
             ->setModel($this);
 
-        if (method_exists($query, $method)) {
-            return $query->where([$this->primaryKey => $this->{$this->primaryKey}]);
+        if (method_exists($query, $method) && !method_exists($this, $method)) {
+
+            if ($method === 'where') {
+                return $query->where([$this->primaryKey => $this->{$this->primaryKey}]);
+            } else {
+                return $query->$method(...$arguments);
+            }
+
         } elseif (method_exists($this, sprintf('scope%s', ucfirst($method)))) {
             return $this->{sprintf('scope%s', ucfirst($method))}($query, ...$arguments);
         } else {
@@ -301,16 +331,11 @@ abstract class Model
         );
     }
 
-    protected function camelCaseToUnderScore(string $input): string
+    /**
+     * @return array|mixed
+     */
+    public function jsonSerialize()
     {
-        preg_match_all('!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!', $input, $matches);
-
-        $result = current($matches);
-
-        foreach ($result as &$chunk) {
-            $chunk = $chunk === strtoupper($chunk) ? strtolower($chunk) : lcfirst($chunk);
-        }
-
-        return implode('_', $result);
+        return $this->fromFillable($this->data);
     }
 }
