@@ -96,6 +96,23 @@ class Request
     }
 
     /**
+     * Получить все переданные поля запроса
+     * @return array
+     */
+    public function all(): array
+    {
+        $result = [];
+
+        if (static::method() === static::GET) {
+            $result = array_merge($_GET, $this->data);
+        } elseif (static::method() === static::POST) {
+            $result = array_merge($_POST, $this->data);
+        }
+
+        return $result;
+    }
+
+    /**
      * @return Request
      */
     public static function current(): Request
