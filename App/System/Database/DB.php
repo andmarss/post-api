@@ -98,18 +98,22 @@ class DB
         $isUpdating = $query->isUpdate();
         $isInserting = $query->isInsert();
         $isSelecting = $query->isSelect();
+        $isExists = $query->isExists();
 
         $statement = $this->getConnection()->prepare($sql ? $sql : (string) $query);
 
         try {
             $statement->execute();
 
-            if ($isSelecting && !$count) {
+            if ($isSelecting && !$count && !$isExists) {
                 $model = $query->getModel();
 
                 return collect($statement->fetchAll(\PDO::FETCH_CLASS, !is_null($model) ? get_class($model) : \stdClass::class));
             } elseif ($isSelecting && $count) {
                 return current($statement->fetch());
+            } elseif ($isExists && $isSelecting) {
+                $result = $statement->fetch(\PDO::FETCH_NUM);
+                return $result ? $result : [];
             }
         } catch (\PDOException $exception) {
             dd($exception->getMessage());
