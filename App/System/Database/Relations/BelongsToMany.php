@@ -88,4 +88,77 @@ class BelongsToMany
 
         return $this;
     }
+
+    /**
+     * @param null $ids
+     * @param array $attributes
+     * @return $this
+     * @throws \Exception
+     */
+    public function attach($ids = null, array $attributes = [])
+    {
+        if (!is_null($ids)) {
+
+            if (!is_array($ids)) {
+                $ids = (array) $ids;
+            }
+
+            $db = DB::getInstance()
+                ->setQuery(new QueryBuilder())
+                ->getQuery()
+                ->table($this->table);
+
+            foreach ($ids as $id) {
+                $data = [$this->foreignPivotKey => $this->model->{$this->model->getPrimary()}, $this->relatedPivotKey => $id] + $attributes;
+                // если такая связь уже есть - пропускаем
+                if ($db->rowExists($data)) continue;
+
+                $db->create($data)->execute();
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param null $ids
+     * @param array $attributes
+     * @return $this
+     * @throws \Exception
+     */
+    public function detach($ids = null, array $attributes = [])
+    {
+        if (!is_null($ids)) {
+
+            if (!is_array($ids)) {
+                $ids = (array) $ids;
+            }
+
+            $db = DB::getInstance()
+                ->setQuery(new QueryBuilder())
+                ->getQuery()
+                ->table($this->table);
+
+            foreach ($ids as $id) {
+                $data = [$this->foreignPivotKey => $this->model->{$this->model->getPrimary()}, $this->relatedPivotKey => $id] + $attributes;
+                // если такой связи нет - пропускаем
+                if (!$db->rowExists($data)) continue;
+
+                $db->where($data)->delete()->execute();
+            }
+        } elseif (is_null($ids)) { // значит, нужно удалить все связи текущей модели со связующей таблицей
+            $db = DB::getInstance()
+                ->setQuery(new QueryBuilder())
+                ->getQuery()
+                ->table($this->table);
+
+            $data = [$this->foreignPivotKey => $this->model->{$this->model->getPrimary()}];
+
+            if (!$db->rowExists($data)) return $this;
+
+            $db->where($data)->delete()->execute();
+        }
+
+        return $this;
+    }
 }
