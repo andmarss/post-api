@@ -18,13 +18,16 @@ Route::group(['prefix' => 'api'], function () {
 
         Route::post('{id}', 'SessionController@show')
             ->where(['id' => '\d+']);
+
+        Route::post('subscribe/{id}', 'SessionController@subscribe')
+            ->where(['id' => '\d+']);
     });
 
     Route::any('', function (){
-        return '123';
+        return 'Not Found';
     });
 });
 
 Route::any('', function (){
-    return '456';
+    return 'Not Found';
 });
