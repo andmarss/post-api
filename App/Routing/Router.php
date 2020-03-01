@@ -113,6 +113,8 @@ class Router
     {
         if ($uri === '') {
             $uri = '/';
+        } elseif ($uri === '//') {
+            $uri = '/';
         }
         /**
          * @var string $uri
@@ -146,8 +148,17 @@ class Router
             return $this->callAction(
                 $controller, $action, []
             );
-        } elseif (count(static::$routes['*']) > 0 && $this->uriHasAnyMatchInAnyRoutes($uri)) {
+        } elseif (count(static::$routes['*']) > 0 && $this->uriHasAnyMatchInAnyRoutes($uri)) { // совпадает ли хотя бы часть маршрута с маршрутами из any
+            $callable = current(array_values($this->getAnyRoute($uri)));
 
+            if (is_callable($callable)) {
+                return $this->callClosure($callable, $parameters);
+            } elseif (is_string($callable) && strpos($callable, '@') !== false) {
+                [$controller, $action] = explode('@', $callable);
+                return $this->callAction(
+                    $controller, $action, $parameters
+                );
+            }
         }
 
         throw new \Exception(sprintf('Для URI %s не указан маршрут.', $uri));
@@ -254,22 +265,32 @@ class Router
      */
     protected function match(string $pattern, string $uri)
     {
-        $pattern = preg_replace('/\{[^\{\}]+\}/', '(.+)', $pattern); // убираем фигурные скобки, заменяем их круглыми
-        $pattern = trim($pattern, '/'); // убираем по бокам слеши
-        $pattern = preg_replace('/\/+/', '\/', $pattern); // а так же все лишние слеши
+        $patternChunks = collect(explode('/', $pattern))->filter(function ($chunk){
+            return  mb_strlen($chunk) > 0;
+        })->values()->all();
 
-        preg_match_all('/' . $pattern . '/', $uri, $m); // применяем паттерн, получаем параметры, которые были передан в маршрут
+        $uriChunks = collect(explode('/', $uri))->filter(function ($chunk){
+            return  mb_strlen($chunk) > 0;
+        })->values()->all();
 
-        if($m && isset($m[0])) {
-            return count(
-                    array_filter(array_map(function (array $match){
-                        return (bool) isset($match[0]) ? $match[0] : false;
-                    }, array_slice($m, 1)), function (bool $match){
-                        return $match;
-                    })
-                ) > 0;
-        } else {
-            return false;
+        if (count($patternChunks) === count($uriChunks)) {
+            $pattern = preg_replace('/\{[^\{\}]+\}/', '(.+)', $pattern); // убираем фигурные скобки, заменяем их круглыми
+            $pattern = trim($pattern, '/'); // убираем по бокам слеши
+            $pattern = preg_replace('/\/+/', '\/', $pattern); // а так же все лишние слеши
+
+            preg_match_all('/' . $pattern . '/', $uri, $m); // применяем паттерн, получаем параметры, которые были передан в маршрут
+
+            if($m && isset($m[0])) {
+                return count(
+                        array_filter(array_map(function (array $match){
+                            return (bool) isset($match[0]) ? $match[0] : false;
+                        }, array_slice($m, 1)), function (bool $match){
+                            return $match;
+                        })
+                    ) > 0;
+            } else {
+                return false;
+            }
         }
     }
 
@@ -447,7 +468,7 @@ class Router
      */
     public function uriHasAnyMatchInAnyRoutes(string $uri): bool
     {
-        foreach (static::$routes['*'] as $route) {
+        foreach (static::$routes['*'] as $route => $callable) {
             if ((bool) preg_match(sprintf('/%s/', trim($route ,'/')), $uri, $m)) {
                 return true;
             }
@@ -458,9 +479,21 @@ class Router
         return false;
     }
 
-    public function getControllerFromAnyRoute(string $uri): string
+    /**
+     * @param string $uri
+     * @return array
+     */
+    public function getAnyRoute(string $uri)
     {
+        foreach (static::$routes['*'] as $route => $callable) {
+            if ((bool) preg_match(sprintf('/%s/', trim($route ,'/')), $uri, $m)) {
+                return [$route => $callable];
+            }
 
+            continue;
+        }
+
+        return [];
     }
 
     /**
