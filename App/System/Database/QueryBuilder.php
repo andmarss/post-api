@@ -24,6 +24,7 @@ class QueryBuilder
     protected $update = false;
     protected $insert = false;
     protected $delete = false;
+    protected $exists = false;
     /**
      * @var Model $model
      */
@@ -72,13 +73,55 @@ class QueryBuilder
     }
 
     /**
+     * Проверка существования таблицы
+     * @return bool
+     * @throws \Exception
+     */
+    public function exists(): bool
+    {
+        if (!$this->sql['table']) {
+            throw new \Exception('Сперва нужно объявить таблицу');
+        }
+
+        $this->select('*');
+
+        $table = $this->sql['table'];
+
+        $this->table('information_schema.tables');
+
+        $this->where(['table_schema' => config('connections/database/name'), 'table_name' => $table]);
+
+        $this->exists = true;
+
+        return count(DB::getInstance()->setQuery($this)->query(null)) > 0;
+    }
+
+    /**
+     * @param array $attributes
+     * @return bool
+     * @throws \Exception
+     */
+    public function rowExists(array $attributes): bool
+    {
+        if (!$this->sql['table']) {
+            throw new \Exception('Сперва нужно объявить таблицу');
+        }
+
+        $this->select('*');
+
+        $this->where($attributes);
+
+        return DB::getInstance()->setQuery($this)->query()->count() > 0;
+    }
+
+    /**
      * @param array $conditions
      * @return QueryBuilder
      * @throws \Exception
      */
     public function where($conditions = []): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -99,19 +142,7 @@ class QueryBuilder
                 $this->sql['where'][] = sprintf('%s%s%s', $field, $operator, $this->escape($value));
             }
 
-        } elseif (is_array($conditions) && count($conditions) === 3) { // where([field,operator,value])
-            /**
-             * @var string $field
-             * @var string $operator
-             * @var string $value
-             */
-            [$field, $operator, $value] = $conditions;
-
-            if(in_array($operator, static::$operators)) {
-                $this->sql['where'][] = sprintf('%s%s%s', $field, $operator, $this->escape($value));
-            }
-
-        } elseif (is_array($conditions) && count($conditions) !== 3 && count($conditions) > 0) {
+        } elseif (is_array($conditions) && count($conditions) > 0) {
 
             $where = implode(' AND ', array_map(function ($key, $value){
                 return sprintf('%s=%s', $key, $this->escape($value));
@@ -133,7 +164,7 @@ class QueryBuilder
      */
     public function whereIn(string $field, $value, $selectedField = null): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -168,7 +199,7 @@ class QueryBuilder
      */
     public function whereNotIn(string $field, $value, string $selectedField = null): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -201,7 +232,7 @@ class QueryBuilder
      */
     public function orWhere($conditions = []): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -224,19 +255,7 @@ class QueryBuilder
                     $this->sql['where'][] = sprintf('OR (%s%s%s)', $field, $operator, $value);
                 }
 
-            } elseif (is_array($conditions) && count($conditions) === 3) { // where([field,operator,value])
-                /**
-                 * @var string $field
-                 * @var string $operator
-                 * @var string $value
-                 */
-                [$field, $operator, $value] = $conditions;
-
-                if(in_array($operator, static::$operators)) {
-                    $this->sql['where'][] = sprintf('OR (%s%s%s)', $field, $operator, $value);
-                }
-
-            } elseif (is_array($conditions) && count($conditions) !== 3 && count($conditions) > 0) {
+            } elseif (is_array($conditions) && count($conditions) > 0) {
 
                 $where = sprintf(' OR (%s)', implode(' AND ', array_map(function ($key, $value){
                     return sprintf('%s=%s', $key, $this->escape($value));
@@ -260,7 +279,7 @@ class QueryBuilder
      */
     public function whereLike($conditions = []): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -287,7 +306,7 @@ class QueryBuilder
      */
     public function orWhereLike($conditions = []): QueryBuilder
     {
-        if(!isset($this->sql['select']) && !isset($this->sql['delete']) && !isset($this->sql['update'])) {
+        if(!$this->sql['select'] && !$this->sql['delete'] && !$this->sql['update']) {
             $this->select();
         }
 
@@ -317,8 +336,12 @@ class QueryBuilder
      * @param string $field
      * @return QueryBuilder
      */
-    public function orderBy(string $field = 'id'): QueryBuilder
+    public function orderBy(string $field = null): QueryBuilder
     {
+        if (is_null($field)) {
+            $field = 'id';
+        }
+
         $this->sql['order_by'] = $field;
 
         return $this;
@@ -445,7 +468,7 @@ class QueryBuilder
             $attributes = $this->model->fromFillable($attributes);
         }
 
-        $update = sprintf('UPDATE %s SET (%s)', $this->sql['table'], implode(', ', array_map(function ($key, $value) {
+        $update = sprintf('UPDATE %s SET %s', $this->sql['table'], implode(', ', array_map(function ($key, $value) {
             return sprintf('%s=%s', $key, $this->escape($value));
         }, array_keys($attributes), array_values($attributes))));
 
@@ -478,7 +501,10 @@ class QueryBuilder
         }
 
         $keys = implode(', ', array_keys($attributes));
-        $values = implode(', ', array_values($attributes));
+
+        $values = implode(', ', array_map(function ($value) {
+            return $this->escape($value);
+        }, array_values($attributes)));
 
         $create = sprintf('INSERT INTO %s (%s) VALUES (%s)', $this->sql['table'], $keys, $values);
 
@@ -642,13 +668,13 @@ class QueryBuilder
                 $where = '';
             }
 
-            if ($this->sql['order_by']) {
+            if (isset($this->sql['order_by']) && $this->sql['order_by'] !== '') {
                 $order_by = $this->sql['order_by'];
             }
 
-            if ($this->sql['order_how']) {
+            if (isset($this->sql['order_how'])) {
                 $order_how = $this->sql['order_how'];
-            } elseif ($this->sql['order_by'] && !$this->sql['order_how']) {
+            } elseif (isset($this->sql['order_by']) && !isset($this->sql['order_how'])) {
                 $order_how = 'ASC';
             }
 
@@ -744,7 +770,7 @@ class QueryBuilder
         return collect([]);
     }
 
-    public function first(): ?Model
+    public function first()
     {
         if ($this->select) {
             /**
@@ -830,6 +856,14 @@ class QueryBuilder
     public function isDelete(): bool
     {
         return $this->delete;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExists(): bool
+    {
+        return $this->exists;
     }
 
     /**
