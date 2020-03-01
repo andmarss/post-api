@@ -4,7 +4,7 @@
 namespace App\System;
 
 
-class Collection
+class Collection implements \Countable, \ArrayAccess
 {
     protected $collection;
 
@@ -62,7 +62,11 @@ class Collection
 
         foreach ($this->collection as $key => $item) {
             if($func($item, $key, $this->collection)) {
-                $result[] = $item;
+                if (!is_numeric($key)) {
+                    $result[$key] = $item;
+                } else {
+                    $result[] = $item;
+                }
             }
         }
 
@@ -159,6 +163,17 @@ class Collection
     }
 
     /**
+     * @param int $num
+     * @return mixed
+     */
+    public function random(int $num = null)
+    {
+        if (is_null($num)) $num = 1;
+
+        return $this->count() > 0 ? $this->collection[array_rand((array) $this->collection, $num)] : null;
+    }
+
+    /**
      * @param \Closure $func
      * @return Collection|mixed
      *
@@ -193,6 +208,37 @@ class Collection
     public static function make($items)
     {
         return (new static($items));
+    }
+
+    /**
+     * @param array $attributes
+     * @return Collection
+     */
+    public function where(array $attributes)
+    {
+        $this->filter(function ($item) use ($attributes) {
+            if (is_array($item)) {
+
+                foreach ($attributes as $key => $value) {
+                    if ($item[$key] != $value) return false;
+
+                    continue;
+                }
+
+                return true;
+
+            } elseif (is_object($item)) {
+                foreach ($attributes as $key => $value) {
+                    if ($item->{$key} != $value) return false;
+
+                    continue;
+                }
+
+                return true;
+            }
+        });
+
+        return $this;
     }
 
     public function offsetExists($offset)
@@ -238,6 +284,19 @@ class Collection
         }
 
         return true;
+    }
+
+    /**
+     * @param \Closure|mixed $key
+     * @return bool
+     */
+    public function contains($key): bool
+    {
+        if ($key instanceof \Closure) {
+            return count(array_filter($this->collection, $key)) > 0;
+        } else {
+            return in_array($key, $this->collection);
+        }
     }
 
     /**
@@ -330,7 +389,7 @@ class Collection
 
     public function first()
     {
-        return current((array) $this->collection);
+        return $this->count() > 0 ? current((array) $this->collection) : null;
     }
 
     /**
