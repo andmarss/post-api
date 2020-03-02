@@ -340,21 +340,23 @@ class Formatter
     }
 
     /**
+     * @param string $name
      * @param string $domain
      * @return string
      */
-    public function email(string $domain = ''): string
+    public function email(string $name = '', string $domain = ''): string
     {
-        return slug($this->name($this->randomElement([true, false]))) . '@' . ($domain ? $domain : collect(static::$freeEmailDomain)->random());
+        return ($name ? slug($name) : slug($this->name($this->randomElement([true, false])))) . '@' . ($domain ? $domain : collect(static::$freeEmailDomain)->random());
     }
 
     /**
+     * @param string $name
      * @param string $domain
      * @return string
      */
-    public function safeEmail(string $domain = ''): string
+    public function safeEmail(string $name = '', string $domain = ''): string
     {
-        return slug($this->name($this->randomElement([true, false]))) . '@' . ($domain ? $domain : collect(static::$safeEmailDomains)->random());
+        return ($name ? slug($name) : slug($this->name($this->randomElement([true, false])))) . '@' . ($domain ? $domain : collect(static::$safeEmailDomains)->random());
     }
 
     /**

@@ -11,9 +11,14 @@ class ParticipantTableSeeder extends Seeder
     public function run(): void
     {
         factory(Participant::class, 10)->create(function (Generator $faker){
+            /**
+             * @var string $name
+             */
+            $name = $faker->firstNameLastName($faker->randomBool);
+
             return [
-                'Email' => $faker->safeEmail,
-                'Name'  => $faker->firstNameLastName($faker->randomBool)
+                'Email' => $faker->safeEmail(current(explode(' ', $name))),
+                'Name'  => $name
             ];
         });
     }
