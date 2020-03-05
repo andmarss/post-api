@@ -41,7 +41,7 @@ class CreateCommandCommand extends Command
          * Создаем файл новой консольной команды
          * @var File $commandFile
          */
-        $commandFile = new File($commandsDirectory->path() . $commandFileName . '.php', true);
+        $commandFile = File::create($commandsDirectory->path() . $commandFileName . '.php');
         /**
          * Контент чернового файла
          * @var string $conten

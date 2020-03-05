@@ -40,6 +40,17 @@ class File
     }
 
     /**
+     * Создает файл по указанному (полному) пути
+     * @param string $path
+     * @return File
+     * @throws \Exception
+     */
+    public static function create(string $path): File
+    {
+        return new static($path, true);
+    }
+
+    /**
      * @param bool $withoutFile
      * @return string
      */

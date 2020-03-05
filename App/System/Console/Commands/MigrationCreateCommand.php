@@ -86,7 +86,7 @@ class MigrationCreateCommand extends Command
             /**
              * @var File $newFile
              */
-            $newFile = new File(root(sprintf('/database/migrations/%s', $newFileName)), true);
+            $newFile = File::create(root(sprintf('/database/migrations/%s', $newFileName)));
 
             $content = str_replace('StubClass', $this->underscoreToCamelCase($migrationName), $content);
             $content = str_replace('stubTable', $table, $content);
@@ -115,7 +115,7 @@ class MigrationCreateCommand extends Command
             /**
              * @var File $newFile
              */
-            $newFile = new File(root(sprintf('/database/migrations/%s', $newFileName)), true);
+            $newFile = File::create(root(sprintf('/database/migrations/%s', $newFileName)));
 
             $content = str_replace('StubClass', $this->underscoreToCamelCase($migrationName), $content);
             $content = str_replace('stubTable', $table, $content);

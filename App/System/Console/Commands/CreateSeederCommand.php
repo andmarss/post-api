@@ -51,7 +51,7 @@ class CreateSeederCommand extends Command
             /**
              * @var File $file
              */
-            $file = new File($seedsDirectory->path() . $class, true);
+            $file = File::create($seedsDirectory->path() . $class);
 
             $file->write($content);
 

@@ -93,6 +93,27 @@ class Directory
     }
 
     /**
+     * Создает файл внутри текущей директории
+     * @param string $fileName
+     * @return File
+     * @throws \Exception
+     */
+    public function createFile(string $fileName): File
+    {
+        return File::create($this->path() . $fileName);
+    }
+
+    /**
+     * Создает рекурсивно папку (если имя указано, например, "foo/bar/baz") внутри текущей директории
+     * @param string $directoryName
+     * @return Directory
+     */
+    public function createDirectory(string $directoryName): Directory
+    {
+        return new static($this->path() . $directoryName);
+    }
+
+    /**
      * @param bool $preserve
      * @return \App\System\Filesystem\Workers\Directory
      * @throws \Exception
